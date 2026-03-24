@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { uploadBookAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 import { extractColorFromImage } from '@/lib/colorUtils';
 import { Upload, Loader2, Image as ImageIcon, FileText, ArrowLeft, RefreshCw } from 'lucide-react';
@@ -11,7 +11,7 @@ export default function NewBookParams() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [spineColor, setSpineColor] = useState('#8B4513'); // Default brown
+    const [spineColor, setSpineColor] = useState('#C8B698'); // Default light brown
 
     // Form States
     const [title, setTitle] = useState('');
@@ -44,65 +44,24 @@ export default function NewBookParams() {
         setLoading(true);
 
         try {
-            const user = (await supabase.auth.getUser()).data.user;
-            if (!user) throw new Error('You must be logged in.');
-
-            // 1. Upload Cover
-            // Use clean filename or uuid to prevent collisions
-            const coverExt = coverFile.name.split('.').pop();
-            const coverPath = `${Date.now()}_cover.${coverExt}`;
-
-            const { data: coverData, error: coverError } = await supabase.storage
-                .from('covers')
-                .upload(coverPath, coverFile);
-
-            if (coverError) throw coverError;
-
-            const coverPublicUrl = supabase.storage
-                .from('covers')
-                .getPublicUrl(coverPath).data.publicUrl;
-
-            // 2. Upload Book File
+            // Local Upload Logic
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('author', author);
+            formData.append('description', description);
+            
             const bookExt = bookFile.name.split('.').pop();
-            const bookPath = `${Date.now()}_book.${bookExt}`;
             const fileType = bookExt?.toLowerCase() === 'pdf' ? 'pdf' : 'text';
+            formData.append('fileType', fileType);
+            
+            formData.append('cover', coverFile);
+            formData.append('book', bookFile);
 
-            const { error: bookError } = await supabase.storage
-                .from('books')
-                .upload(bookPath, bookFile);
+            await uploadBookAction(formData);
 
-            if (bookError) throw bookError;
-
-            const bookPublicUrl = supabase.storage
-                .from('books')
-                .getPublicUrl(bookPath).data.publicUrl;
-
-            // 3. Insert into Database
-            // Note: We are saving spine_color in description via JSON or future column? 
-            // For now, let's keep schema simple, maybe append to description or add column later.
-            // User requested spine color matching. We can just use the cover itself or 
-            // for now, let's assume the UI will calculate it dynamically or we just save it.
-            // Since schema doesn't have spine_color, we will ignore saving it to DB for V1 schema 
-            // and implement dynamic calc on frontend, OR we add a column.
-            // Let's add it to metadata or description? No, let's Stick to the plan:
-            // "Auto-generated spine... cover driven". So frontend can re-calculate it or we accept default.
-
-            const { error: dbError } = await supabase
-                .from('books')
-                .insert({
-                    title,
-                    author,
-                    description, // In V2 we might want to store spine color here or add column
-                    cover_url: coverPublicUrl,
-                    file_url: bookPublicUrl,
-                    file_type: fileType,
-                });
-
-            if (dbError) throw dbError;
-
-            alert('Book uploaded successfully!');
-            router.push('/admin/books');
-            router.refresh();
+            alert('Book uploaded locally successfully!');
+            // Soft Navigationバグ回避のため、Hard Refreshで遷移します。
+            window.location.href = '/admin/books';
 
         } catch (error: any) {
             console.error('Upload failed:', error);

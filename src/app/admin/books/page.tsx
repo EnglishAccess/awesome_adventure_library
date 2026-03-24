@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getBooks, deleteBookAction } from '@/app/actions';
 import { Book } from '@/types';
 import Link from 'next/link';
 import { Plus, Trash2, Edit, LogOut, BookOpen } from 'lucide-react';
@@ -13,26 +13,13 @@ export default function AdminDashboard() {
     const router = useRouter();
 
     useEffect(() => {
-        checkUser();
         fetchBooks();
     }, []);
 
-    const checkUser = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            router.push('/admin/login');
-        }
-    };
-
     const fetchBooks = async () => {
         try {
-            const { data, error } = await supabase
-                .from('books')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setBooks(data as Book[]);
+            const data = await getBooks();
+            setBooks(data);
         } catch (error) {
             console.error('Error fetching books:', error);
         } finally {
@@ -40,9 +27,14 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this book?')) return;
+        await deleteBookAction(id);
+        await fetchBooks();
+    };
+
     const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push('/');
+        window.location.href = '/';
     };
 
     if (loading) return <div className="p-8 text-center">Loading guild data...</div>;
@@ -101,7 +93,7 @@ export default function AdminDashboard() {
                                         <button className="p-2 text-gray-400 hover:text-amber-600 transition-colors">
                                             <Edit size={18} />
                                         </button>
-                                        <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                                        <button onClick={() => handleDelete(book.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
                                             <Trash2 size={18} />
                                         </button>
                                     </td>

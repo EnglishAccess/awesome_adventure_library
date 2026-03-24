@@ -1,22 +1,9 @@
-import { supabase } from '@/lib/supabase';
 import { Book } from '@/types';
 import { BookOpen } from 'lucide-react';
 import Link from 'next/link';
+import { getBooks } from '@/app/actions';
 
 export const revalidate = 0; // Disable cache for now
-
-async function getBooks() {
-  const { data, error } = await supabase
-    .from('books')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching books:', error);
-    return [];
-  }
-  return data as Book[];
-}
 
 export default async function Home() {
   const books = await getBooks();

@@ -1,25 +1,10 @@
-
-import { supabase } from '@/lib/supabase';
 import { Book } from '@/types';
 import Reader from '@/components/viewer/Reader';
 import Link from 'next/link';
 import { ArrowLeft, BookX } from 'lucide-react';
+import { getBook } from '@/app/actions';
 
 export const revalidate = 0;
-
-async function getBook(id: string) {
-    const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-    if (error) {
-        console.error('Error fetching book:', error);
-        return null;
-    }
-    return data as Book;
-}
 
 export default async function BookPage(props: { params: Promise<{ id: string }> }) {
     const params = await props.params;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { mockLogin } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 import { Lock, Loader2, AlertCircle } from 'lucide-react';
 
@@ -18,16 +18,11 @@ export default function AdminLogin() {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+            await mockLogin();
 
-            if (error) throw error;
-
-            // ログイン成功したら管理画面へ
-            router.push('/admin/books');
-            router.refresh();
+            // Next.jsのSoft Navigationでレンダリングが固まるバグを回避するため、
+            // 強制的にHard Navigation（ページ全体の再読み込み）で遷移させます。
+            window.location.href = '/admin/books';
         } catch (err: any) {
             setError(err.message);
         } finally {
