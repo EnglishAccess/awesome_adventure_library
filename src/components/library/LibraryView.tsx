@@ -10,75 +10,44 @@ interface LibraryViewProps {
 }
 
 export default function LibraryView({ initialBooks }: LibraryViewProps) {
-  const [selectedTextbook, setSelectedTextbook] = useState<string>('');
   const [selectedLevel, setSelectedLevel] = useState<string>('');
   const [selectedUnit, setSelectedUnit] = useState<string>('');
 
   // Extract unique values for filters
-  const textbooks = useMemo(() => {
-    const vals = new Set(initialBooks.map(b => b.textbook).filter(Boolean) as string[]);
+  const levels = useMemo(() => {
+    const vals = new Set(initialBooks.map(b => b.level).filter(Boolean) as string[]);
     return Array.from(vals).sort();
   }, [initialBooks]);
 
-  const levels = useMemo(() => {
-    // If a textbook is selected, optionally we could filter levels by that textbook.
-    // But for simplicity, we show all available levels based on current textbook selection.
-    let relevantBooks = initialBooks;
-    if (selectedTextbook) {
-      relevantBooks = relevantBooks.filter(b => b.textbook === selectedTextbook);
-    }
-    const vals = new Set(relevantBooks.map(b => b.level).filter(Boolean) as string[]);
-    return Array.from(vals).sort();
-  }, [initialBooks, selectedTextbook]);
-
   const units = useMemo(() => {
     let relevantBooks = initialBooks;
-    if (selectedTextbook) relevantBooks = relevantBooks.filter(b => b.textbook === selectedTextbook);
     if (selectedLevel) relevantBooks = relevantBooks.filter(b => b.level === selectedLevel);
     
     const vals = new Set(relevantBooks.map(b => b.unit).filter(Boolean) as string[]);
     return Array.from(vals).sort();
-  }, [initialBooks, selectedTextbook, selectedLevel]);
+  }, [initialBooks, selectedLevel]);
 
   // Filter books
   const filteredBooks = useMemo(() => {
     return initialBooks.filter(book => {
-      if (selectedTextbook && book.textbook !== selectedTextbook) return false;
       if (selectedLevel && book.level !== selectedLevel) return false;
       if (selectedUnit && book.unit !== selectedUnit) return false;
       return true;
     });
-  }, [initialBooks, selectedTextbook, selectedLevel, selectedUnit]);
+  }, [initialBooks, selectedLevel, selectedUnit]);
 
   const clearFilters = () => {
-    setSelectedTextbook('');
     setSelectedLevel('');
     setSelectedUnit('');
   };
 
-  const hasFilters = selectedTextbook || selectedLevel || selectedUnit;
+  const hasFilters = selectedLevel || selectedUnit;
 
   return (
     <section>
       {/* Filters Section */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-[#E5E0D5] mb-8">
         <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-bold text-gray-500 mb-1">教科書 (Textbook)</label>
-            <select
-              value={selectedTextbook}
-              onChange={(e) => {
-                setSelectedTextbook(e.target.value);
-                setSelectedLevel('');
-                setSelectedUnit('');
-              }}
-              className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 disabled:opacity-50"
-              disabled={textbooks.length === 0}
-            >
-              <option value="">すべて (All)</option>
-              {textbooks.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
 
           <div className="flex-1 w-full">
             <label className="block text-xs font-bold text-gray-500 mb-1">レベル (Level)</label>
@@ -151,9 +120,8 @@ export default function LibraryView({ initialBooks }: LibraryViewProps) {
             <Link key={book.id} href={`/books/${book.id}`} className="block group">
               <div className="bg-white rounded-lg shadow-sm group-hover:shadow-md transition-all duration-200 overflow-hidden border border-[#E5E0D5] transform group-hover:-translate-y-1">
                 {/* Categorization Badges / Tags */}
-                {(book.textbook || book.level || book.unit) && (
+                {(book.level || book.unit) && (
                    <div className="absolute top-2 left-2 right-2 flex flex-wrap gap-1 z-10 pointer-events-none">
-                     {book.textbook && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 shadow-sm border border-blue-200/50 backdrop-blur-sm">{book.textbook}</span>}
                      {book.level && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 shadow-sm border border-amber-200/50 backdrop-blur-sm">{book.level}</span>}
                      {book.unit && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-200/50 backdrop-blur-sm">{book.unit}</span>}
                    </div>

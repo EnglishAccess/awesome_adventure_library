@@ -36,7 +36,6 @@ export async function uploadBookAction(formData: FormData): Promise<Book> {
   const title = formData.get('title') as string;
   const author = formData.get('author') as string;
   const description = formData.get('description') as string;
-  const textbook = formData.get('textbook') as string | null;
   const level = formData.get('level') as string | null;
   const unit = formData.get('unit') as string | null;
   const fileType = formData.get('fileType') as string;
@@ -76,7 +75,6 @@ export async function uploadBookAction(formData: FormData): Promise<Book> {
     title,
     author,
     description,
-    textbook: textbook || null,
     level: level || null,
     unit: unit || null,
     cover_url: coverUrlData.publicUrl,
