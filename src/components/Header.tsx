@@ -1,7 +1,18 @@
+'use client';
+
 import Link from 'next/link';
 import { Compass, BookOpen } from 'lucide-react';
 
 export default function Header() {
+    const handleLoginClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        const pwd = window.prompt('Enter Guild Password:');
+        if (pwd) {
+            // Send to our simple auth API
+            window.location.href = `/api/auth?pwd=${encodeURIComponent(pwd)}`;
+        }
+    };
+
     return (
         <header className="w-full bg-[#EFEBE4] border-b-4 border-[#C8B698] p-4 shadow-sm">
             <div className="container mx-auto flex items-center justify-between">
@@ -22,13 +33,13 @@ export default function Header() {
 
                 {/* Navigation (Simple for now) */}
                 <nav className="flex items-center gap-4">
-                    <Link
-                        href="/admin/login"
+                    <button
+                        onClick={handleLoginClick}
                         className="text-amber-800 hover:text-amber-600 font-bold text-sm flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity"
                     >
                         <BookOpen size={16} />
                         <span className="hidden md:inline">Guild Login</span>
-                    </Link>
+                    </button>
                 </nav>
             </div>
         </header>
