@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, forwardRef } from 'react';
-import { Document, Page } from 'react-pdf';
+import { Document, Page, pdfjs } from 'react-pdf';
 import HTMLFlipBook from 'react-pageflip';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -24,23 +24,77 @@ export default function FlipReader({ url, bookId }: FlipReaderProps) {
     const [numPages, setNumPages] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
-    const flipBookRef = useRef<any>(null); // Type definition for flipbook is tricky
+    const flipBookRef = useRef<any>(null);
 
-    // Calculate dimensions based on window
-    // Ideally dynamic, but for MVP fixed ratio good enough
-    const [dimensions, setDimensions] = useState({ width: 450, height: 640 });
+    // Dynamic dimensions based on actual PDF page aspect ratio
+    const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
+    const [pageAspectRatio, setPageAspectRatio] = useState<number | null>(null); // width / height
 
+    // Step 1: Load the PDF and detect page dimensions from the first page
     useEffect(() => {
+        let cancelled = false;
+        async function detectPageSize() {
+            try {
+                const loadingTask = pdfjs.getDocument(url);
+                const pdf = await loadingTask.promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 1 });
+                if (!cancelled) {
+                    // viewport.width / viewport.height gives us the aspect ratio
+                    setPageAspectRatio(viewport.width / viewport.height);
+                }
+            } catch (e) {
+                console.error('Failed to detect PDF page size:', e);
+                // Fallback to A4 portrait ratio
+                if (!cancelled) setPageAspectRatio(0.707);
+            }
+        }
+        detectPageSize();
+        return () => { cancelled = true; };
+    }, [url]);
+
+    // Step 2: Calculate FlipBook dimensions based on detected aspect ratio + window size
+    useEffect(() => {
+        if (pageAspectRatio === null) return;
+
         const updateDim = () => {
-            // A4 ratio approx 0.7
-            const h = window.innerHeight * 0.85;
-            const w = h * 0.7;
-            setDimensions({ width: w, height: h });
+            const maxH = window.innerHeight * 0.82;
+            const maxW = (window.innerWidth * 0.45); // Each page is roughly half the screen width in spread mode
+
+            let pageW: number;
+            let pageH: number;
+
+            if (pageAspectRatio >= 1) {
+                // Landscape PDF: width >= height
+                // Fit by width first
+                pageW = Math.min(maxW, maxH * pageAspectRatio);
+                pageH = pageW / pageAspectRatio;
+                // If height overflows, re-fit by height
+                if (pageH > maxH) {
+                    pageH = maxH;
+                    pageW = pageH * pageAspectRatio;
+                }
+            } else {
+                // Portrait PDF: height > width
+                // Fit by height first
+                pageH = maxH;
+                pageW = pageH * pageAspectRatio;
+                // If width overflows, re-fit by width
+                if (pageW > maxW) {
+                    pageW = maxW;
+                    pageH = pageW / pageAspectRatio;
+                }
+            }
+
+            setDimensions({
+                width: Math.round(pageW),
+                height: Math.round(pageH),
+            });
         };
         updateDim();
         window.addEventListener('resize', updateDim);
         return () => window.removeEventListener('resize', updateDim);
-    }, []);
+    }, [pageAspectRatio]);
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
         setNumPages(numPages);
@@ -50,25 +104,31 @@ export default function FlipReader({ url, bookId }: FlipReaderProps) {
         const saved = localStorage.getItem(`progress_${bookId}`);
         if (saved && flipBookRef.current) {
             const p = parseInt(saved, 10);
-            // Note: react-pageflip uses index from 0 for the whole spread logic?
-            // Actually it seems to use index.
-            // We'll try to flip to it after a short delay to ensure render
             setTimeout(() => {
                 try {
-                    // If it's a spread, we might need logic.
-                    // Assuming simple flip to page index.
-                    flipBookRef.current.pageFlip().flip(p - 1); // 0-indexed??
+                    flipBookRef.current.pageFlip().flip(p - 1);
                 } catch (e) { console.log(e); }
             }, 500);
         }
     }
 
     const onFlip = (e: any) => {
-        const pageIndex = e.data; // Current page index (0, 1, 2...)
+        const pageIndex = e.data;
         setCurrentPage(pageIndex);
-        // Save logical page number (1-indexed)
         localStorage.setItem(`progress_${bookId}`, (pageIndex + 1).toString());
     };
+
+    // Don't render FlipBook until we know the dimensions
+    if (!dimensions) {
+        return (
+            <div className="relative w-full h-full flex items-center justify-center bg-[#333]">
+                <div className="flex items-center text-white/50">
+                    <Loader2 className="animate-spin mb-2" />
+                    <span className="ml-2">Detecting page size...</span>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="relative w-full h-full flex items-center justify-center bg-[#333]">
@@ -110,21 +170,21 @@ export default function FlipReader({ url, bookId }: FlipReaderProps) {
                         width={dimensions.width}
                         height={dimensions.height}
                         size="fixed"
-                        minWidth={300}
-                        maxWidth={1000}
-                        minHeight={400}
-                        maxHeight={1400}
+                        minWidth={200}
+                        maxWidth={1500}
+                        minHeight={200}
+                        maxHeight={1500}
                         maxShadowOpacity={0.5}
                         showCover={true}
-                        mobileScrollSupport={false} // We handle mobile separately
+                        mobileScrollSupport={false}
                         ref={flipBookRef}
                         onFlip={onFlip}
                         className="shadow-2xl"
-                        style={{}} // Required prop
+                        style={{}}
                         startPage={0}
                         drawShadow={true}
-                        flippingTime={1000} // Slower for nicer animation
-                        usePortrait={false} // Force spread on desktop
+                        flippingTime={1000}
+                        usePortrait={false}
                         startZIndex={0}
                         autoSize={true}
                         clickEventForward={true}
