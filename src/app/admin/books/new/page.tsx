@@ -17,6 +17,9 @@ export default function NewBookParams() {
     const [title, setTitle] = useState('');
     const [author, setAuthor] = useState('');
     const [description, setDescription] = useState('');
+    const [textbook, setTextbook] = useState('');
+    const [level, setLevel] = useState('');
+    const [unit, setUnit] = useState('');
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [bookFile, setBookFile] = useState<File | null>(null);
 
@@ -49,6 +52,9 @@ export default function NewBookParams() {
             formData.append('title', title);
             formData.append('author', author);
             formData.append('description', description);
+            if (textbook) formData.append('textbook', textbook);
+            if (level) formData.append('level', level);
+            if (unit) formData.append('unit', unit);
             
             const bookExt = bookFile.name.split('.').pop();
             const fileType = bookExt?.toLowerCase() === 'pdf' ? 'pdf' : 'text';
@@ -109,6 +115,75 @@ export default function NewBookParams() {
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
                                 placeholder="e.g. J.R.R. Tolkien"
                             />
+                        </div>
+
+                        {/* Optional Classification Fields */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1">Textbook (Optional)</label>
+                                <select
+                                    value={textbook}
+                                    onChange={(e) => {
+                                        setTextbook(e.target.value);
+                                        setLevel(''); // 教科書が変わったらレベルをリセット
+                                    }}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none bg-white"
+                                >
+                                    <option value="">-- 指定なし --</option>
+                                    <option value="AAS">AAS</option>
+                                    <option value="APA">APA</option>
+                                    <option value="English Coach">English Coach</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1">Level (Optional)</label>
+                                <select
+                                    value={level}
+                                    onChange={(e) => setLevel(e.target.value)}
+                                    disabled={!textbook}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none bg-white disabled:opacity-50 disabled:bg-gray-100"
+                                >
+                                    <option value="">-- 指定なし --</option>
+                                    {textbook === 'AAS' && (
+                                        <>
+                                            {Array.from({ length: 4 }).flatMap((_, l) => 
+                                                Array.from({ length: 4 }).map((_, b) => (
+                                                    <option key={`aas-${l + 1}-${b + 1}`} value={`レベル${l + 1} Book${['①', '②', '③', '④'][b]}`}>
+                                                        {`レベル${l + 1} Book${['①', '②', '③', '④'][b]}`}
+                                                    </option>
+                                                ))
+                                            )}
+                                        </>
+                                    )}
+                                    {textbook === 'APA' && (
+                                        <>
+                                            {['1', '2', '3', '4'].map(l => (
+                                                <option key={l} value={l}>レベル {l}</option>
+                                            ))}
+                                        </>
+                                    )}
+                                    {textbook === 'English Coach' && (
+                                        <>
+                                            {['5Q', '4Q', '3Q', '2Q', 'Pre2Q', 'Pre2Q+', 'Pre1Q', '1Q'].map(l => (
+                                                <option key={l} value={l}>{l}</option>
+                                            ))}
+                                        </>
+                                    )}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1">Unit (Optional)</label>
+                                <select
+                                    value={unit}
+                                    onChange={(e) => setUnit(e.target.value)}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none bg-white"
+                                >
+                                    <option value="">-- 指定なし --</option>
+                                    {Array.from({ length: 20 }, (_, i) => i + 1).map(u => (
+                                        <option key={u} value={u.toString()}>Unit {u}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         <div>

@@ -6,6 +6,9 @@ export type Book = {
     cover_url: string | null;
     file_url: string | null;
     file_type: 'pdf' | 'text';
+    textbook?: string | null;
+    level?: string | null;
+    unit?: string | null;
     view_count: number;
     created_at: string;
 };
