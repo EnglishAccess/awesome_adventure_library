@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { uploadBookAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import { extractColorFromImage } from '@/lib/colorUtils';
 import { Upload, Loader2, Image as ImageIcon, FileText, ArrowLeft, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
@@ -46,30 +46,59 @@ export default function NewBookParams() {
         setLoading(true);
 
         try {
-            // Local Upload Logic
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('author', author);
-            formData.append('description', description);
-            if (level) formData.append('level', level);
-            if (unit) formData.append('unit', unit);
-            
-            const bookExt = bookFile.name.split('.').pop();
-            const fileType = bookExt?.toLowerCase() === 'pdf' ? 'pdf' : 'text';
-            formData.append('fileType', fileType);
-            
-            formData.append('cover', coverFile);
-            formData.append('book', bookFile);
+            // Vercel Serverless Limits (4.5MB payload, 10s timeout) 回避のため、
+            // ブラウザからSupabaseへ直接ファイルをアップロードする（直行便）
+            const id = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+            const BUCKET = 'books';
 
-            await uploadBookAction(formData);
+            // 1. 本(PDF)のアップロード
+            const bookExt = bookFile.name.split('.').pop() || 'pdf';
+            const bookPath = `${id}_book.${bookExt}`;
+            const { error: bookUploadError } = await supabase.storage
+                .from(BUCKET)
+                .upload(bookPath, bookFile, { contentType: bookFile.type });
 
-            alert('Book uploaded locally successfully!');
-            // Soft Navigationバグ回避のため、Hard Refreshで遷移します。
+            if (bookUploadError) throw new Error(`Book upload failed: ${bookUploadError.message}`);
+
+            // 2. 表紙(画像)のアップロード
+            const coverExt = coverFile.name.split('.').pop() || 'png';
+            const coverPath = `${id}_cover.${coverExt}`;
+            const { error: coverUploadError } = await supabase.storage
+                .from(BUCKET)
+                .upload(coverPath, coverFile, { contentType: coverFile.type });
+
+            if (coverUploadError) throw new Error(`Cover upload failed: ${coverUploadError.message}`);
+
+            // 3. アップロードしたファイルの公開URLを取得
+            const { data: bookUrlData } = supabase.storage.from(BUCKET).getPublicUrl(bookPath);
+            const { data: coverUrlData } = supabase.storage.from(BUCKET).getPublicUrl(coverPath);
+
+            const fileType = bookExt.toLowerCase() === 'pdf' ? 'pdf' : 'text';
+
+            // 4. メタデータをデータベース(books)に登録
+            const newBook = {
+                id,
+                title,
+                author,
+                description,
+                level: level || null,
+                unit: unit || null,
+                cover_url: coverUrlData.publicUrl,
+                file_url: bookUrlData.publicUrl,
+                file_type: fileType,
+                view_count: 0,
+            };
+
+            const { error: dbError } = await supabase.from('books').insert(newBook);
+            if (dbError) throw new Error(`Database insert failed: ${dbError.message}`);
+
+            alert('Book uploaded successfully!');
+            // 入力フォームをリセットしつつ更新
             window.location.href = '/admin/books';
 
         } catch (error: any) {
             console.error('Upload failed:', error);
-            alert(`Upload failed: ${error.message}`);
+            alert(`Upload failed: ${error.message}\n(ファイルサイズが大きいか、通信環境による可能性があります)`);
         } finally {
             setLoading(false);
         }
