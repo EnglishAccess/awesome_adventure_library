@@ -59,9 +59,9 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
         if (pageAspectRatio === null) return;
 
         const updateDim = () => {
-            // Give more space (Header is ~50px, Footer is ~40px)
-            const maxH = window.innerHeight - 120;
-            const maxW = (window.innerWidth - 100) / 2; 
+            // Maximum possible space
+            const maxH = window.innerHeight - 100;
+            const maxW = (window.innerWidth - 60) / 2; 
 
             let pageW: number;
             let pageH: number;
@@ -167,7 +167,7 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
                     <HTMLFlipBook
                         width={dimensions.width}
                         height={dimensions.height}
-                        size="fixed"
+                        size="stretch"
                         minWidth={200}
                         maxWidth={1500}
                         minHeight={200}
@@ -197,17 +197,15 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
 
                             return pagesToRender.map((pageNum, renderIndex) => (
                                 <FlipPage key={renderIndex}>
-                                    <Page
-                                        pageNumber={pageNum}
-                                        width={dimensions.width}
-                                        renderTextLayer={false}
-                                        renderAnnotationLayer={false}
-                                        loading={
-                                            <div className="w-full h-full bg-white flex items-center justify-center text-gray-300">
-                                                <Loader2 className="animate-spin" />
-                                            </div>
-                                        }
-                                    />
+                                    <div className="w-full h-full flex items-center justify-center p-[1px]">
+                                        <Page
+                                            pageNumber={pageNum}
+                                            width={dimensions.width - 4}
+                                            renderTextLayer={false}
+                                            renderAnnotationLayer={false}
+                                            loading={null}
+                                        />
+                                    </div>
                                     {/* Page Number Footer */}
                                     <div className={`absolute bottom-2 text-[10px] text-gray-400 font-mono w-full px-4 ${renderIndex % 2 === 0 ? 'text-left' : 'text-right'}`}>
                                         - {pageNum} -
