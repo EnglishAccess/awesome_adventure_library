@@ -14,7 +14,7 @@ interface FlipReaderProps {
 // Custom Page Component required by react-pageflip
 const FlipPage = forwardRef<HTMLDivElement, any>((props, ref) => {
     return (
-        <div ref={ref} className="bg-white shadow-md overflow-hidden" style={{ backgroundColor: '#fff' }}>
+        <div ref={ref} className="bg-transparent shadow-none overflow-visible" style={{}}>
             {props.children}
         </div>
     );
@@ -59,28 +59,25 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
         if (pageAspectRatio === null) return;
 
         const updateDim = () => {
-            const maxH = window.innerHeight * 0.82;
-            const maxW = (window.innerWidth * 0.45); // Each page is roughly half the screen width in spread mode
+            // Give more space (Header is ~50px, Footer is ~40px)
+            const maxH = window.innerHeight - 120;
+            const maxW = (window.innerWidth - 100) / 2; 
 
             let pageW: number;
             let pageH: number;
 
             if (pageAspectRatio >= 1) {
                 // Landscape PDF: width >= height
-                // Fit by width first
                 pageW = Math.min(maxW, maxH * pageAspectRatio);
                 pageH = pageW / pageAspectRatio;
-                // If height overflows, re-fit by height
                 if (pageH > maxH) {
                     pageH = maxH;
                     pageW = pageH * pageAspectRatio;
                 }
             } else {
                 // Portrait PDF: height > width
-                // Fit by height first
-                pageH = maxH;
+                pageH = Math.min(maxH, maxW / pageAspectRatio);
                 pageW = pageH * pageAspectRatio;
-                // If width overflows, re-fit by width
                 if (pageW > maxW) {
                     pageW = maxW;
                     pageH = pageW / pageAspectRatio;
