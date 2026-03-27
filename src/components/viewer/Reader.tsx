@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { Book } from '@/types';
 import { pdfjs } from 'react-pdf';
 
-import FlipReader from './FlipReader';
-import ScrollReader from './ScrollReader';
+import dynamic from 'next/dynamic';
+
+const FlipReader = dynamic(() => import('./FlipReader'), { ssr: false });
+const ScrollReader = dynamic(() => import('./ScrollReader'), { ssr: false });
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, Loader2, ExternalLink } from 'lucide-react';
 
@@ -13,7 +15,9 @@ import { ArrowLeft, BookOpen, Loader2, ExternalLink } from 'lucide-react';
 // Use a fixed version matching the package.json to avoid errors
 // "react-pdf": "^10.2.0" -> pdfjs-dist used internally.
 // We'll use unkg or similar CDN for simplicity in Next.js App Router
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+if (typeof window !== 'undefined') {
+    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+}
 
 interface ReaderProps {
     book: Book;
