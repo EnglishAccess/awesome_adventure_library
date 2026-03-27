@@ -263,12 +263,12 @@ export default function NewBookParams() {
                             </div>
 
                             {/* Front Cover Preview */}
-                            <div className="w-48 md:w-56 h-64 md:h-80 bg-gray-200 relative overflow-hidden">
+                            <div className="w-48 md:w-56 h-64 md:h-80 bg-gray-200 relative overflow-hidden flex items-center justify-center">
                                 {previewUrl ? (
                                     <img
                                         src={previewUrl}
                                         alt="Cover Preview"
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-contain bg-white"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-100">

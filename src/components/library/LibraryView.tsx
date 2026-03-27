@@ -128,16 +128,16 @@ export default function LibraryView({ initialBooks }: LibraryViewProps) {
                 )}
 
                 {/* Book Cover */}
-                <div className="aspect-[3/4] bg-gray-100 relative">
+                <div className="w-full bg-gray-100 relative flex items-center justify-center">
                   {book.cover_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={book.cover_url}
                       alt={book.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-auto object-contain"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-amber-50 text-amber-200">
+                    <div className="w-full aspect-[3/4] flex items-center justify-center bg-amber-50 text-amber-200">
                       <BookOpen size={48} />
                     </div>
                   )}
