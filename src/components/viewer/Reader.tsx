@@ -85,9 +85,9 @@ export default function Reader({ book }: ReaderProps) {
             <div className="flex-grow relative w-full h-full overflow-hidden">
                 {book.file_url ? (
                     isMobile ? (
-                        <ScrollReader url={book.file_url} bookId={book.id} />
+                        <ScrollReader url={book.file_url} bookId={book.id} skipFirstPage={book.skip_first_page} />
                     ) : (
-                        <FlipReader url={book.file_url} bookId={book.id} />
+                        <FlipReader url={book.file_url} bookId={book.id} skipFirstPage={book.skip_first_page} />
                     )
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-white/50">

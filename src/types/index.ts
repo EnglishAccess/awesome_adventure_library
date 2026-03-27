@@ -9,6 +9,7 @@ export type Book = {
     level?: string | null;
     unit?: string | null;
     link_url?: string | null;
+    skip_first_page?: boolean;
     view_count: number;
     created_at: string;
 };

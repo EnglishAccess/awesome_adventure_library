@@ -8,6 +8,7 @@ import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 interface FlipReaderProps {
     url: string;
     bookId: string;
+    skipFirstPage?: boolean;
 }
 
 // Custom Page Component required by react-pageflip
@@ -20,7 +21,7 @@ const FlipPage = forwardRef<HTMLDivElement, any>((props, ref) => {
 });
 FlipPage.displayName = 'FlipPage';
 
-export default function FlipReader({ url, bookId }: FlipReaderProps) {
+export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderProps) {
     const [numPages, setNumPages] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
@@ -193,25 +194,30 @@ export default function FlipReader({ url, bookId }: FlipReaderProps) {
                         showPageCorners={true}
                         disableFlipByClick={false}
                     >
-                        {Array.from(new Array(numPages), (el, index) => (
-                            <FlipPage key={index}>
-                                <Page
-                                    pageNumber={index + 1}
-                                    width={dimensions.width}
-                                    renderTextLayer={false}
-                                    renderAnnotationLayer={false}
-                                    loading={
-                                        <div className="w-full h-full bg-white flex items-center justify-center text-gray-300">
-                                            <Loader2 className="animate-spin" />
-                                        </div>
-                                    }
-                                />
-                                {/* Page Number Footer */}
-                                <div className={`absolute bottom-2 text-[10px] text-gray-400 font-mono w-full px-4 ${index % 2 === 0 ? 'text-left' : 'text-right'}`}>
-                                    - {index + 1} -
-                                </div>
-                            </FlipPage>
-                        ))}
+                        {(() => {
+                            const pagesArray = Array.from(new Array(numPages), (el, index) => index + 1);
+                            const pagesToRender = skipFirstPage && pagesArray.length > 1 ? pagesArray.slice(1) : pagesArray;
+
+                            return pagesToRender.map((pageNum, renderIndex) => (
+                                <FlipPage key={renderIndex}>
+                                    <Page
+                                        pageNumber={pageNum}
+                                        width={dimensions.width}
+                                        renderTextLayer={false}
+                                        renderAnnotationLayer={false}
+                                        loading={
+                                            <div className="w-full h-full bg-white flex items-center justify-center text-gray-300">
+                                                <Loader2 className="animate-spin" />
+                                            </div>
+                                        }
+                                    />
+                                    {/* Page Number Footer */}
+                                    <div className={`absolute bottom-2 text-[10px] text-gray-400 font-mono w-full px-4 ${renderIndex % 2 === 0 ? 'text-left' : 'text-right'}`}>
+                                        - {pageNum} -
+                                    </div>
+                                </FlipPage>
+                            ));
+                        })()}
                     </HTMLFlipBook>
                 </Document>
             </div>

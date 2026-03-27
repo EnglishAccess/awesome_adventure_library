@@ -7,9 +7,10 @@ import { Loader2 } from 'lucide-react';
 interface ScrollReaderProps {
     url: string;
     bookId: string;
+    skipFirstPage?: boolean;
 }
 
-export default function ScrollReader({ url, bookId }: ScrollReaderProps) {
+export default function ScrollReader({ url, bookId, skipFirstPage }: ScrollReaderProps) {
     const [numPages, setNumPages] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [pageWidth, setPageWidth] = useState<number>(0);
@@ -99,22 +100,27 @@ export default function ScrollReader({ url, bookId }: ScrollReaderProps) {
                 className="flex flex-col items-center gap-4"
                 loading={null}
             >
-                {Array.from(new Array(numPages), (el, index) => (
-                    <div key={`page_${index + 1}`} id={`page_${index + 1}`} className="shadow-lg">
-                        <Page
-                            pageNumber={index + 1}
-                            width={pageWidth}
-                            renderTextLayer={false}
-                            renderAnnotationLayer={false}
-                            loading={
-                                <div className="w-full h-[50vh] bg-white/5 animate-pulse rounded" />
-                            }
-                        />
-                        <div className="text-center text-xs text-white/30 mt-1">
-                            {index + 1} / {numPages}
+                {(() => {
+                    const pagesArray = Array.from(new Array(numPages), (el, index) => index + 1);
+                    const pagesToRender = skipFirstPage && pagesArray.length > 1 ? pagesArray.slice(1) : pagesArray;
+
+                    return pagesToRender.map((pageNum) => (
+                        <div key={`page_${pageNum}`} id={`page_${pageNum}`} className="shadow-lg">
+                            <Page
+                                pageNumber={pageNum}
+                                width={pageWidth}
+                                renderTextLayer={false}
+                                renderAnnotationLayer={false}
+                                loading={
+                                    <div className="w-full h-[50vh] bg-white/5 animate-pulse rounded" />
+                                }
+                            />
+                            <div className="text-center text-xs text-white/30 mt-1">
+                                {pageNum} / {numPages}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ));
+                })()}
             </Document>
         </div>
     );

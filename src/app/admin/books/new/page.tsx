@@ -4,6 +4,9 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { extractColorFromImage } from '@/lib/colorUtils';
+import { pdfjs } from 'react-pdf';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 import { Upload, Loader2, Image as ImageIcon, FileText, ArrowLeft, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
@@ -20,8 +23,11 @@ export default function NewBookParams() {
     const [level, setLevel] = useState('');
     const [unit, setUnit] = useState('');
     const [linkUrl, setLinkUrl] = useState('');
+    const [skipFirstPage, setSkipFirstPage] = useState(false);
+    
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [bookFile, setBookFile] = useState<File | null>(null);
+    const [isExtracting, setIsExtracting] = useState(false);
 
     const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -34,6 +40,47 @@ export default function NewBookParams() {
             // Extract color for spine
             const color = await extractColorFromImage(objectUrl);
             setSpineColor(color);
+        }
+    };
+
+    const handleExtractCover = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!bookFile || bookFile.type !== 'application/pdf') return;
+        
+        try {
+            setIsExtracting(true);
+            const arrayBuffer = await bookFile.arrayBuffer();
+            const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+            const page = await pdf.getPage(1);
+            
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (!context) return;
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({ canvasContext: context, viewport } as any).promise;
+            
+            canvas.toBlob(async (blob) => {
+                if (blob) {
+                    const extractedFile = new File([blob], bookFile.name.replace('.pdf', '_cover.jpg'), { type: 'image/jpeg' });
+                    setCoverFile(extractedFile);
+                    
+                    const objectUrl = URL.createObjectURL(blob);
+                    setPreviewUrl(objectUrl);
+                    
+                    const color = await extractColorFromImage(objectUrl);
+                    setSpineColor(color);
+                }
+            }, 'image/jpeg', 0.85);
+
+        } catch (err) {
+            console.error('Failed to extract PDF cover', err);
+            alert('PDFから表紙を抽出できませんでした。');
+        } finally {
+            setIsExtracting(false);
         }
     };
 
@@ -85,6 +132,7 @@ export default function NewBookParams() {
                 level: level || null,
                 unit: unit || null,
                 link_url: linkUrl || null,
+                skip_first_page: skipFirstPage,
                 cover_url: coverUrlData.publicUrl,
                 file_url: bookUrlData.publicUrl,
                 file_type: fileType,
@@ -217,6 +265,28 @@ export default function NewBookParams() {
                                         </span>
                                     </div>
                                 </div>
+                                {bookFile && bookFile.type === 'application/pdf' && (
+                                    <div className="mt-3 flex flex-col gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleExtractCover}
+                                            disabled={isExtracting}
+                                            className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-amber-100 text-amber-800 text-sm font-bold rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+                                        >
+                                            {isExtracting ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+                                            PDFから表紙（1ページ目）を自動生成する
+                                        </button>
+                                        <label className="flex items-center gap-2 text-sm text-gray-700 mt-1 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={skipFirstPage}
+                                                onChange={(e) => setSkipFirstPage(e.target.checked)}
+                                                className="w-4 h-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                                            />
+                                            閲覧時、1ページ目を表紙とみなしてスキップ（2ページ目から開始）
+                                        </label>
+                                    </div>
+                                )}
                             </div>
 
                             <div>
