@@ -29,27 +29,10 @@ export default function NewBookParams() {
     const [bookFile, setBookFile] = useState<File | null>(null);
     const [isExtracting, setIsExtracting] = useState(false);
 
-    const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setCoverFile(file);
-            // Create local preview URL
-            const objectUrl = URL.createObjectURL(file);
-            setPreviewUrl(objectUrl);
-
-            // Extract color for spine
-            const color = await extractColorFromImage(objectUrl);
-            setSpineColor(color);
-        }
-    };
-
-    const handleExtractCover = async (e: React.MouseEvent) => {
-        e.preventDefault();
-        if (!bookFile || bookFile.type !== 'application/pdf') return;
-        
+    const extractPdfToImageAndSetCover = async (pdfFile: File) => {
         try {
             setIsExtracting(true);
-            const arrayBuffer = await bookFile.arrayBuffer();
+            const arrayBuffer = await pdfFile.arrayBuffer();
             const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
             const page = await pdf.getPage(1);
             
@@ -65,7 +48,7 @@ export default function NewBookParams() {
             
             canvas.toBlob(async (blob) => {
                 if (blob) {
-                    const extractedFile = new File([blob], bookFile.name.replace('.pdf', '_cover.jpg'), { type: 'image/jpeg' });
+                    const extractedFile = new File([blob], pdfFile.name.replace('.pdf', '_cover.jpg'), { type: 'image/jpeg' });
                     setCoverFile(extractedFile);
                     
                     const objectUrl = URL.createObjectURL(blob);
@@ -82,6 +65,28 @@ export default function NewBookParams() {
         } finally {
             setIsExtracting(false);
         }
+    };
+
+    const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.type === 'application/pdf') {
+            await extractPdfToImageAndSetCover(file);
+        } else {
+            setCoverFile(file);
+            const objectUrl = URL.createObjectURL(file);
+            setPreviewUrl(objectUrl);
+            const color = await extractColorFromImage(objectUrl);
+            setSpineColor(color);
+        }
+    };
+
+    const handleExtractCover = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!bookFile || bookFile.type !== 'application/pdf') return;
+        
+        await extractPdfToImageAndSetCover(bookFile);
     };
 
     const handleUpload = async (e: React.FormEvent) => {
@@ -294,14 +299,14 @@ export default function NewBookParams() {
                                 <div className="relative border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors p-4 text-center cursor-pointer group">
                                     <input
                                         type="file"
-                                        accept="image/*"
+                                        accept="image/*,application/pdf"
                                         onChange={handleCoverChange}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     />
                                     <div className="flex flex-col items-center">
                                         <ImageIcon className={`mb-2 ${coverFile ? 'text-green-600' : 'text-gray-400 group-hover:text-amber-500'}`} />
                                         <span className="text-sm text-gray-600 font-medium">
-                                            {coverFile ? 'Change Cover Image' : 'Click to select Cover'}
+                                            {coverFile ? 'Change Cover Image' : 'Click to select Cover Image or PDF'}
                                         </span>
                                     </div>
                                 </div>
