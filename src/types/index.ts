@@ -8,6 +8,7 @@ export type Book = {
     file_type: 'pdf' | 'text';
     level?: string | null;
     unit?: string | null;
+    link_url?: string | null;
     view_count: number;
     created_at: string;
 };

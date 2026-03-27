@@ -19,6 +19,7 @@ export default function NewBookParams() {
     const [description, setDescription] = useState('');
     const [level, setLevel] = useState('');
     const [unit, setUnit] = useState('');
+    const [linkUrl, setLinkUrl] = useState('');
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [bookFile, setBookFile] = useState<File | null>(null);
 
@@ -83,6 +84,7 @@ export default function NewBookParams() {
                 description,
                 level: level || null,
                 unit: unit || null,
+                link_url: linkUrl || null,
                 cover_url: coverUrlData.publicUrl,
                 file_url: bookUrlData.publicUrl,
                 file_type: fileType,
@@ -183,6 +185,18 @@ export default function NewBookParams() {
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
                                 placeholder="Brief summary used for search and intro..."
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Link URL (Optional)</label>
+                            <input
+                                type="url"
+                                value={linkUrl}
+                                onChange={(e) => setLinkUrl(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
+                                placeholder="https://example.com/related-quiz"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">本を開いたときに「関連リンク」ボタンとして表示されます（QRも作成されます）</p>
                         </div>
 
                         {/* File Inputs */}

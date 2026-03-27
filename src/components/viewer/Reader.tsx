@@ -7,7 +7,7 @@ import { pdfjs } from 'react-pdf';
 import FlipReader from './FlipReader';
 import ScrollReader from './ScrollReader';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Loader2, ExternalLink } from 'lucide-react';
 
 // Setup PDF worker
 // Use a fixed version matching the package.json to avoid errors
@@ -50,11 +50,35 @@ export default function Reader({ book }: ReaderProps) {
                     <span className="hidden sm:inline text-sm font-medium">Library</span>
                 </Link>
 
-                <h1 className="text-sm md:text-base font-bold truncate max-w-[60vw] px-2">
+                <h1 className="text-sm md:text-base font-bold truncate max-w-[50vw] px-2 text-center">
                     {book.title}
                 </h1>
 
-                <div className="w-8" />{/* Spacer for centering */}
+                <div className="flex items-center">
+                    {book.link_url ? (
+                        <a
+                            href={book.link_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group relative flex items-center gap-1 bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-full text-xs font-bold transition-colors shadow-sm"
+                        >
+                            <span className="hidden sm:inline">関連リンク</span>
+                            <ExternalLink size={14} />
+                            
+                            {/* Hover QR Code (Desktop only) */}
+                            <div className="absolute hidden group-hover:block top-full right-0 mt-2 p-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                                <img 
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(book.link_url)}`}
+                                    alt="QR Code"
+                                    className="w-24 h-24 sm:w-32 sm:h-32"
+                                />
+                                <div className="text-center text-[10px] text-gray-500 mt-1">スマホでスキャン</div>
+                            </div>
+                        </a>
+                    ) : (
+                        <div className="w-8" />
+                    )}
+                </div>
             </header>
 
             {/* Main Content */}
