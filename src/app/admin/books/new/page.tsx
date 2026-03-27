@@ -24,6 +24,7 @@ export default function NewBookParams() {
     const [unit, setUnit] = useState('');
     const [linkUrl, setLinkUrl] = useState('');
     const [skipFirstPage, setSkipFirstPage] = useState(false);
+    const [autoCover, setAutoCover] = useState(false);
     
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [bookFile, setBookFile] = useState<File | null>(null);
@@ -82,11 +83,12 @@ export default function NewBookParams() {
         }
     };
 
-    const handleExtractCover = async (e: React.MouseEvent) => {
-        e.preventDefault();
-        if (!bookFile || bookFile.type !== 'application/pdf') return;
-        
-        await extractPdfToImageAndSetCover(bookFile);
+    const handleAutoCoverToggle = async (checked: boolean) => {
+        setAutoCover(checked);
+        setSkipFirstPage(checked);
+        if (checked && bookFile && bookFile.type === 'application/pdf') {
+            await extractPdfToImageAndSetCover(bookFile);
+        }
     };
 
     const handleUpload = async (e: React.FormEvent) => {
@@ -271,31 +273,31 @@ export default function NewBookParams() {
                                     </div>
                                 </div>
                                 {bookFile && bookFile.type === 'application/pdf' && (
-                                    <div className="mt-3 flex flex-col gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={handleExtractCover}
-                                            disabled={isExtracting}
-                                            className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-amber-100 text-amber-800 text-sm font-bold rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
-                                        >
-                                            {isExtracting ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
-                                            PDFから表紙（1ページ目）を自動生成する
-                                        </button>
-                                        <label className="flex items-center gap-2 text-sm text-gray-700 mt-1 cursor-pointer">
+                                    <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                        <label className="flex items-center gap-2 cursor-pointer">
                                             <input
                                                 type="checkbox"
-                                                checked={skipFirstPage}
-                                                onChange={(e) => setSkipFirstPage(e.target.checked)}
+                                                checked={autoCover}
+                                                onChange={(e) => handleAutoCoverToggle(e.target.checked)}
                                                 className="w-4 h-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
                                             />
-                                            閲覧時、1ページ目を表紙とみなしてスキップ（2ページ目から開始）
+                                            <span className="text-sm font-bold text-amber-900">
+                                                1ページ目をカバー画像として自動認識し、本文は2ページ目以降にする
+                                            </span>
                                         </label>
+                                        {isExtracting && (
+                                            <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                                                <Loader2 size={12} className="animate-spin"/> 自動抽出中...
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Cover Image</label>
+                            {/* Show manual cover upload only if autoCover is false */}
+                            {!autoCover && (
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Cover Image (Upload Manually)</label>
                                 <div className="relative border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors p-4 text-center cursor-pointer group">
                                     <input
                                         type="file"
@@ -310,7 +312,8 @@ export default function NewBookParams() {
                                         </span>
                                     </div>
                                 </div>
-                            </div>
+                                </div>
+                            )}
                         </div>
 
                         <button
