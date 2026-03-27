@@ -72,7 +72,7 @@ export default function NewBookParams() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.type === 'application/pdf') {
+        if (file.name.toLowerCase().endsWith('.pdf')) {
             await extractPdfToImageAndSetCover(file);
         } else {
             setCoverFile(file);
@@ -83,10 +83,17 @@ export default function NewBookParams() {
         }
     };
 
+    const handleExtractCover = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!bookFile || !bookFile.name.toLowerCase().endsWith('.pdf')) return;
+        
+        await extractPdfToImageAndSetCover(bookFile);
+    };    
+
     const handleAutoCoverToggle = async (checked: boolean) => {
         setAutoCover(checked);
         setSkipFirstPage(checked);
-        if (checked && bookFile && bookFile.type === 'application/pdf') {
+        if (checked && bookFile && bookFile.name.toLowerCase().endsWith('.pdf')) {
             await extractPdfToImageAndSetCover(bookFile);
         }
     };
@@ -272,7 +279,7 @@ export default function NewBookParams() {
                                         </span>
                                     </div>
                                 </div>
-                                {bookFile && bookFile.type === 'application/pdf' && (
+                                {bookFile && bookFile.name.toLowerCase().endsWith('.pdf') && (
                                     <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
                                         <label className="flex items-center gap-2 cursor-pointer">
                                             <input
