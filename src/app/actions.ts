@@ -15,7 +15,26 @@ export async function getBooks(): Promise<Book[]> {
     console.error('getBooks error:', error);
     return [];
   }
-  return data as Book[];
+  
+  const levelOrder: Record<string, number> = {
+    '5Q': 1,
+    '4Q': 2,
+    '3Q': 3,
+  };
+
+  const sortedData = (data as Book[]).sort((a, b) => {
+    const aLevelIdx = a.level && levelOrder[a.level] ? levelOrder[a.level] : 999;
+    const bLevelIdx = b.level && levelOrder[b.level] ? levelOrder[b.level] : 999;
+    if (aLevelIdx !== bLevelIdx) return aLevelIdx - bLevelIdx;
+
+    const aUnitNum = a.unit ? parseInt(a.unit, 10) : 999;
+    const bUnitNum = b.unit ? parseInt(b.unit, 10) : 999;
+    if (aUnitNum !== bUnitNum) return aUnitNum - bUnitNum;
+
+    return 0;
+  });
+
+  return sortedData;
 }
 
 export async function getBook(id: string): Promise<Book | null> {

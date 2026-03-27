@@ -27,12 +27,40 @@ export default function LibraryView({ initialBooks }: LibraryViewProps) {
     return Array.from(vals).sort();
   }, [initialBooks, selectedLevel]);
 
-  // Filter books
+  // Filter and Sort books
   const filteredBooks = useMemo(() => {
-    return initialBooks.filter(book => {
+    const list = initialBooks.filter(book => {
       if (selectedLevel && book.level !== selectedLevel) return false;
       if (selectedUnit && book.unit !== selectedUnit) return false;
       return true;
+    });
+
+    // 並び替え： 5Q > 4Q > 3Q の順、同じレベルなら Unit 1 > 2 > ... 12 の順
+    const levelOrder: Record<string, number> = {
+      '5Q': 1,
+      '4Q': 2,
+      '3Q': 3,
+    };
+
+    return list.sort((a, b) => {
+      // 1. レベルでの比較
+      const aLevelIdx = a.level && levelOrder[a.level] ? levelOrder[a.level] : 999;
+      const bLevelIdx = b.level && levelOrder[b.level] ? levelOrder[b.level] : 999;
+      
+      if (aLevelIdx !== bLevelIdx) {
+        return aLevelIdx - bLevelIdx;
+      }
+
+      // 2. ユニットでの数値比較
+      const aUnitNum = a.unit ? parseInt(a.unit, 10) : 999;
+      const bUnitNum = b.unit ? parseInt(b.unit, 10) : 999;
+
+      if (aUnitNum !== bUnitNum) {
+        return aUnitNum - bUnitNum;
+      }
+
+      // 3. 全て同じ場合は元の並び順を維持
+      return 0;
     });
   }, [initialBooks, selectedLevel, selectedUnit]);
 
