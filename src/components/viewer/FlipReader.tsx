@@ -59,34 +59,29 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
         if (pageAspectRatio === null) return;
 
         const updateDim = () => {
-            // Standard safe space (Header ~60px, Footer/Progress ~60px)
-            const maxH = window.innerHeight - 150;
-            const maxW = (window.innerWidth - 100) / 2; 
+            // Give even more space (Header is ~50px, Footer is ~40px)
+            const paddingH = 100;
+            const paddingW = 40; 
+            const maxH = window.innerHeight - paddingH;
+            const maxW = (window.innerWidth - paddingW) / 2; 
 
             let pageW: number;
             let pageH: number;
 
+            // Priority: Fill width as much as possible while respecting aspect ratio
             if (pageAspectRatio >= 1) {
-                // Landscape PDF: width >= height
+                // Landscape
                 pageW = Math.min(maxW, maxH * pageAspectRatio);
                 pageH = pageW / pageAspectRatio;
-                if (pageH > maxH) {
-                    pageH = maxH;
-                    pageW = pageH * pageAspectRatio;
-                }
             } else {
-                // Portrait PDF: height > width
+                // Portrait
                 pageH = Math.min(maxH, maxW / pageAspectRatio);
                 pageW = pageH * pageAspectRatio;
-                if (pageW > maxW) {
-                    pageW = maxW;
-                    pageH = pageW / pageAspectRatio;
-                }
             }
 
             setDimensions({
-                width: Math.round(pageW),
-                height: Math.round(pageH),
+                width: Math.floor(pageW),
+                height: Math.floor(pageH),
             });
         };
         updateDim();
@@ -195,18 +190,21 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
                             const pagesArray = Array.from(new Array(numPages), (el, index) => index + 1);
                             const pagesToRender = skipFirstPage && pagesArray.length > 1 ? pagesArray.slice(1) : pagesArray;
 
-                             return pagesToRender.map((pageNum, renderIndex) => (
+                            return pagesToRender.map((pageNum, renderIndex) => (
                                 <FlipPage key={renderIndex}>
-                                    <Page
-                                        pageNumber={pageNum}
-                                        width={dimensions.width}
-                                        renderTextLayer={false}
-                                        renderAnnotationLayer={false}
-                                        loading={null}
-                                    />
-                                    {/* Page Number Footer */}
-                                    <div className={`absolute bottom-2 text-[10px] text-gray-400 font-mono w-full px-4 ${renderIndex % 2 === 0 ? 'text-left' : 'text-right'}`}>
-                                        - {pageNum} -
+                                    <div className="w-full h-full flex items-center justify-center bg-white shadow-lg overflow-hidden relative">
+                                        <Page
+                                            pageNumber={pageNum}
+                                            width={dimensions.width}
+                                            renderTextLayer={false}
+                                            renderAnnotationLayer={false}
+                                            loading={null}
+                                            className="max-w-full max-h-full"
+                                        />
+                                        {/* Simple Page Number Footer Overlay */}
+                                        <div className={`absolute bottom-1 text-[9px] text-gray-400 font-mono w-full px-2 pointer-events-none ${renderIndex % 2 === 0 ? 'text-left' : 'text-right'}`}>
+                                            {pageNum}
+                                        </div>
                                     </div>
                                 </FlipPage>
                             ));
