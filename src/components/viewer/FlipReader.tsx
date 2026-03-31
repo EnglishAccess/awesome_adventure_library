@@ -11,10 +11,9 @@ interface FlipReaderProps {
     skipFirstPage?: boolean;
 }
 
-// Custom Page Component required by react-pageflip
 const FlipPage = forwardRef<HTMLDivElement, any>((props, ref) => {
     return (
-        <div ref={ref} className="bg-white shadow-md overflow-hidden" style={{ backgroundColor: '#fff' }}>
+        <div ref={ref} className="bg-white overflow-hidden" style={{ backgroundColor: '#fff' }}>
             {props.children}
         </div>
     );
@@ -26,12 +25,12 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
     const flipBookRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    // Dimensions are derived from PDF aspect ratio + viewport size
     const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
     const [pageAspectRatio, setPageAspectRatio] = useState<number | null>(null);
 
-    // Step 1: Detect actual aspect ratio from first PDF page
+    // Step 1: Detect actual PDF page aspect ratio
     useEffect(() => {
         let cancelled = false;
         async function detectPageSize() {
@@ -44,35 +43,39 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
                 }
             } catch (e) {
                 console.error('Failed to detect PDF page size:', e);
-                if (!cancelled) setPageAspectRatio(0.707); // Fallback A4 portrait
+                if (!cancelled) setPageAspectRatio(0.707);
             }
         }
         detectPageSize();
         return () => { cancelled = true; };
     }, [url]);
 
-    // Step 2: Calculate page dimensions so that the 2-page spread fits both width and height
+    // Step 2: Calculate dimensions from the container's actual rendered size
     useEffect(() => {
         if (pageAspectRatio === null) return;
 
-        const HEADER_H = 60;   // approx header height
-        const MARGIN_W = 80;   // left/right navigation buttons space
-        const MARGIN_H = 80;   // top/bottom margin
-
         const calculateDim = () => {
-            const availH = window.innerHeight - HEADER_H - MARGIN_H;
-            // spread = 2 pages side by side, so each page gets half the width
-            const availW = (window.innerWidth - MARGIN_W) / 2;
+            // Measure the actual container element, not window
+            const container = containerRef.current;
+            if (!container) return;
+
+            const containerW = container.clientWidth;
+            const containerH = container.clientHeight;
+
+            // Each page = half the container width (2-page spread)
+            // Use 0.48 to leave a small buffer for shadows/borders
+            const maxW = Math.floor(containerW * 0.48);
+            const maxH = Math.floor(containerH * 0.95);
 
             let pageW: number;
             let pageH: number;
 
-            // Fit by height first, then ensure it doesn't exceed half the viewport width
-            pageH = availH;
+            // Fit by height, then clamp to maxW
+            pageH = maxH;
             pageW = pageH * pageAspectRatio;
 
-            if (pageW > availW) {
-                pageW = availW;
+            if (pageW > maxW) {
+                pageW = maxW;
                 pageH = pageW / pageAspectRatio;
             }
 
@@ -82,9 +85,13 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
             });
         };
 
-        calculateDim();
+        // Small delay to ensure container is measured after layout
+        const timer = setTimeout(calculateDim, 50);
         window.addEventListener('resize', calculateDim);
-        return () => window.removeEventListener('resize', calculateDim);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', calculateDim);
+        };
     }, [pageAspectRatio]);
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
@@ -108,101 +115,101 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
         localStorage.setItem(`progress_${bookId}`, (pageIndex + 1).toString());
     };
 
-    if (!dimensions) {
-        return (
-            <div className="w-full h-full flex items-center justify-center bg-[#333] text-white/50">
-                <Loader2 className="animate-spin mr-2" />
-                <span>Loading...</span>
-            </div>
-        );
-    }
-
     const pagesArray = Array.from(new Array(numPages), (_, i) => i + 1);
     const pagesToRender = skipFirstPage && pagesArray.length > 1 ? pagesArray.slice(1) : pagesArray;
 
     return (
-        <div className="relative w-full h-full flex items-center justify-center bg-[#333]">
-            {loading && (
+        <div
+            ref={containerRef}
+            className="relative w-full h-full flex items-center justify-center bg-[#333] overflow-hidden"
+        >
+            {/* Loading overlay */}
+            {(!dimensions || loading) && (
                 <div className="absolute inset-0 flex items-center justify-center text-white/50 z-20 bg-[#333]">
                     <Loader2 className="animate-spin mr-2" />
-                    <span>Loading Book...</span>
+                    <span>{!dimensions ? 'Detecting page size...' : 'Loading Book...'}</span>
                 </div>
             )}
 
-            {/* Left/Right Navigation */}
-            {!loading && (
+            {/* Navigation buttons */}
+            {dimensions && !loading && (
                 <>
                     <button
-                        className="absolute left-4 z-10 p-2 bg-black/30 hover:bg-black/50 text-white rounded-full transition-colors"
+                        className="absolute left-2 z-10 p-2 bg-black/30 hover:bg-black/50 text-white rounded-full transition-colors"
                         onClick={() => flipBookRef.current?.pageFlip().flipPrev()}
                     >
-                        <ChevronLeft size={32} />
+                        <ChevronLeft size={28} />
                     </button>
                     <button
-                        className="absolute right-4 z-10 p-2 bg-black/30 hover:bg-black/50 text-white rounded-full transition-colors"
+                        className="absolute right-2 z-10 p-2 bg-black/30 hover:bg-black/50 text-white rounded-full transition-colors"
                         onClick={() => flipBookRef.current?.pageFlip().flipNext()}
                     >
-                        <ChevronRight size={32} />
+                        <ChevronRight size={28} />
                     </button>
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm bg-black/20 px-4 py-1 rounded-full pointer-events-none">
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-white/50 text-sm bg-black/20 px-4 py-1 rounded-full pointer-events-none z-10">
                         Page {currentPage + 1} / {numPages}
                     </div>
                 </>
             )}
 
-            <Document
-                file={url}
-                onLoadSuccess={onDocumentLoadSuccess}
-                loading={null}
-            >
-                <HTMLFlipBook
-                    width={dimensions.width}
-                    height={dimensions.height}
-                    size="fixed"
-                    minWidth={200}
-                    maxWidth={2000}
-                    minHeight={200}
-                    maxHeight={2000}
-                    maxShadowOpacity={0.5}
-                    showCover={true}
-                    mobileScrollSupport={false}
-                    ref={flipBookRef}
-                    onFlip={onFlip}
-                    className="shadow-2xl"
-                    style={{}}
-                    startPage={0}
-                    drawShadow={true}
-                    flippingTime={800}
-                    usePortrait={false}
-                    startZIndex={0}
-                    autoSize={false}
-                    clickEventForward={true}
-                    useMouseEvents={true}
-                    swipeDistance={30}
-                    showPageCorners={true}
-                    disableFlipByClick={false}
+            {/* FlipBook — only render once dimensions are known */}
+            {dimensions && (
+                <Document
+                    file={url}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    loading={null}
                 >
-                    {pagesToRender.map((pageNum, renderIndex) => (
-                        <FlipPage key={renderIndex}>
-                            <Page
-                                pageNumber={pageNum}
-                                width={dimensions.width}
-                                renderTextLayer={false}
-                                renderAnnotationLayer={false}
-                                loading={
-                                    <div className="flex items-center justify-center bg-white text-gray-300"
-                                        style={{ width: dimensions.width, height: dimensions.height }}>
-                                        <Loader2 className="animate-spin" />
-                                    </div>
-                                }
-                            />
-                            <div className={`absolute bottom-2 text-[10px] text-gray-400 font-mono w-full px-4 ${renderIndex % 2 === 0 ? 'text-left' : 'text-right'}`}>
-                                - {pageNum} -
-                            </div>
-                        </FlipPage>
-                    ))}
-                </HTMLFlipBook>
-            </Document>
+                    <HTMLFlipBook
+                        width={dimensions.width}
+                        height={dimensions.height}
+                        size="fixed"
+                        minWidth={100}
+                        maxWidth={2000}
+                        minHeight={100}
+                        maxHeight={2000}
+                        maxShadowOpacity={0.4}
+                        showCover={true}
+                        mobileScrollSupport={false}
+                        ref={flipBookRef}
+                        onFlip={onFlip}
+                        className="shadow-2xl"
+                        style={{}}
+                        startPage={0}
+                        drawShadow={true}
+                        flippingTime={800}
+                        usePortrait={false}
+                        startZIndex={0}
+                        autoSize={false}
+                        clickEventForward={true}
+                        useMouseEvents={true}
+                        swipeDistance={30}
+                        showPageCorners={true}
+                        disableFlipByClick={false}
+                    >
+                        {pagesToRender.map((pageNum, renderIndex) => (
+                            <FlipPage key={renderIndex}>
+                                <Page
+                                    pageNumber={pageNum}
+                                    width={dimensions.width}
+                                    renderTextLayer={false}
+                                    renderAnnotationLayer={false}
+                                    loading={
+                                        <div
+                                            className="bg-white flex items-center justify-center text-gray-300"
+                                            style={{ width: dimensions.width, height: dimensions.height }}
+                                        >
+                                            <Loader2 className="animate-spin" />
+                                        </div>
+                                    }
+                                />
+                                <div className={`absolute bottom-2 text-[10px] text-gray-400 font-mono w-full px-4 ${renderIndex % 2 === 0 ? 'text-left' : 'text-right'}`}>
+                                    - {pageNum} -
+                                </div>
+                            </FlipPage>
+                        ))}
+                    </HTMLFlipBook>
+                </Document>
+            )}
         </div>
     );
 }
