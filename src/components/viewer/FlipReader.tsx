@@ -59,9 +59,9 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
         if (pageAspectRatio === null) return;
 
         const updateDim = () => {
-            // Maximum possible space
-            const maxH = window.innerHeight - 100;
-            const maxW = (window.innerWidth - 60) / 2; 
+            // Standard safe space (Header ~60px, Footer/Progress ~60px)
+            const maxH = window.innerHeight - 150;
+            const maxW = (window.innerWidth - 100) / 2; 
 
             let pageW: number;
             let pageH: number;
@@ -167,7 +167,7 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
                     <HTMLFlipBook
                         width={dimensions.width}
                         height={dimensions.height}
-                        size="stretch"
+                        size="fixed"
                         minWidth={200}
                         maxWidth={1500}
                         minHeight={200}
@@ -197,10 +197,10 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
 
                             return pagesToRender.map((pageNum, renderIndex) => (
                                 <FlipPage key={renderIndex}>
-                                    <div className="w-full h-full flex items-center justify-center p-[1px]">
+                                    <div className="w-full h-full flex items-center justify-center bg-white shadow-lg overflow-hidden">
                                         <Page
                                             pageNumber={pageNum}
-                                            width={dimensions.width - 4}
+                                            width={dimensions.width - 10}
                                             renderTextLayer={false}
                                             renderAnnotationLayer={false}
                                             loading={null}
