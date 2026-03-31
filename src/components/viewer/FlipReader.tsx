@@ -14,7 +14,7 @@ interface FlipReaderProps {
 // Custom Page Component required by react-pageflip
 const FlipPage = forwardRef<HTMLDivElement, any>((props, ref) => {
     return (
-        <div ref={ref} className="bg-transparent shadow-none overflow-visible" style={{}}>
+        <div ref={ref} className="bg-white shadow-md overflow-hidden relative" style={{ height: '100%' }}>
             {props.children}
         </div>
     );
@@ -195,17 +195,15 @@ export default function FlipReader({ url, bookId, skipFirstPage }: FlipReaderPro
                             const pagesArray = Array.from(new Array(numPages), (el, index) => index + 1);
                             const pagesToRender = skipFirstPage && pagesArray.length > 1 ? pagesArray.slice(1) : pagesArray;
 
-                            return pagesToRender.map((pageNum, renderIndex) => (
+                             return pagesToRender.map((pageNum, renderIndex) => (
                                 <FlipPage key={renderIndex}>
-                                    <div className="w-full h-full flex items-center justify-center bg-white shadow-lg overflow-hidden">
-                                        <Page
-                                            pageNumber={pageNum}
-                                            width={dimensions.width - 10}
-                                            renderTextLayer={false}
-                                            renderAnnotationLayer={false}
-                                            loading={null}
-                                        />
-                                    </div>
+                                    <Page
+                                        pageNumber={pageNum}
+                                        width={dimensions.width}
+                                        renderTextLayer={false}
+                                        renderAnnotationLayer={false}
+                                        loading={null}
+                                    />
                                     {/* Page Number Footer */}
                                     <div className={`absolute bottom-2 text-[10px] text-gray-400 font-mono w-full px-4 ${renderIndex % 2 === 0 ? 'text-left' : 'text-right'}`}>
                                         - {pageNum} -
