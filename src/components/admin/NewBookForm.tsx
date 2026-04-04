@@ -36,7 +36,12 @@ export default function NewBookForm() {
         try {
             setIsExtracting(true);
             const arrayBuffer = await pdfFile.arrayBuffer();
-            const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+            const pdf = await pdfjs.getDocument({ 
+                data: arrayBuffer,
+                cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+                cMapPacked: true,
+                standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`
+            }).promise;
             const page = await pdf.getPage(1);
             
             const viewport = page.getViewport({ scale: 1.5 });
