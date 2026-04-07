@@ -28,6 +28,17 @@ const polyfillScript = `
     };
   }
 
+  // URL.parse — Safari < 17.0, iOS < 17.0
+  if (typeof URL !== 'undefined' && typeof URL.parse === 'undefined') {
+    URL.parse = function(url, base) {
+      try {
+        return new URL(url, base);
+      } catch (e) {
+        return null;
+      }
+    };
+  }
+
   // structuredClone — Safari < 15.4, iOS < 15.4
   if (typeof globalThis.structuredClone === 'undefined') {
     globalThis.structuredClone = function(val) {
