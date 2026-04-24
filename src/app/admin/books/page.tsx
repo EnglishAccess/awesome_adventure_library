@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getBooks, deleteBookAction } from '@/app/actions';
+import { getBooks, deleteBookAction, logoutAction } from '@/app/actions';
 import { Book } from '@/types';
 import Link from 'next/link';
 import { Plus, Trash2, Edit, LogOut, BookOpen } from 'lucide-react';
@@ -34,6 +34,7 @@ export default function AdminDashboard() {
     };
 
     const handleLogout = async () => {
+        await logoutAction();
         window.location.href = '/';
     };
 

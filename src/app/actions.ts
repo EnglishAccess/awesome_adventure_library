@@ -2,8 +2,18 @@
 
 import { supabase } from '@/lib/supabase';
 import { Book } from '@/types';
+import { cookies } from 'next/headers';
+import { verifyToken, signToken } from '@/lib/auth';
 
 const BUCKET = 'books';
+
+async function verifyServerAction() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('guild_auth')?.value;
+  if (!token) return false;
+  const payload = await verifyToken(token);
+  return !!payload?.admin;
+}
 
 export async function getBooks(): Promise<Book[]> {
   const { data, error } = await supabase
@@ -52,6 +62,10 @@ export async function getBook(id: string): Promise<Book | null> {
 }
 
 export async function uploadBookAction(formData: FormData): Promise<Book> {
+  if (!(await verifyServerAction())) {
+    throw new Error('Unauthorized');
+  }
+
   const title = formData.get('title') as string;
   const author = formData.get('author') as string;
   const description = formData.get('description') as string;
@@ -114,6 +128,10 @@ export async function uploadBookAction(formData: FormData): Promise<Book> {
 }
 
 export async function deleteBookAction(id: string) {
+  if (!(await verifyServerAction())) {
+    throw new Error('Unauthorized');
+  }
+
   // Delete the record from DB
   const { data: book } = await supabase.from('books').select('*').eq('id', id).single();
 
@@ -129,7 +147,24 @@ export async function deleteBookAction(id: string) {
   if (error) throw new Error(`Delete failed: ${error.message}`);
 }
 
-// 認証モック（将来的にSupabase Authに置き換え可能）
-export async function mockLogin() {
-  return true;
+// Secure login implementation
+export async function mockLogin(password?: string) {
+  if (password === process.env.ADMIN_PASSWORD) {
+    const token = await signToken({ admin: true });
+    const cookieStore = await cookies();
+    cookieStore.set('guild_auth', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
+    });
+    return true;
+  }
+  throw new Error('Invalid credentials');
 }
+
+export async function logoutAction() {
+  const cookieStore = await cookies();
+  cookieStore.delete('guild_auth');
+}
+

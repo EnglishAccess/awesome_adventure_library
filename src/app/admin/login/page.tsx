@@ -18,7 +18,7 @@ export default function AdminLogin() {
         setError(null);
 
         try {
-            await mockLogin();
+            await mockLogin(password);
 
             // Next.jsのSoft Navigationでレンダリングが固まるバグを回避するため、
             // 強制的にHard Navigation（ページ全体の再読み込み）で遷移させます。
