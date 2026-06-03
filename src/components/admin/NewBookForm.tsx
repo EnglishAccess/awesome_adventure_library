@@ -129,7 +129,12 @@ export default function NewBookForm() {
 
             try {
                 // Try secure upload using Signed Upload URLs (Option 2)
-                const bookSigned = await getSignedUploadUrlAction(bookPath);
+                const bookSignedResult = await getSignedUploadUrlAction(bookPath);
+                if (!bookSignedResult.success) {
+                    throw new Error(bookSignedResult.error);
+                }
+                const bookSigned = bookSignedResult.data!;
+
                 const bookUploadRes = await fetch(bookSigned.signedUrl, {
                     method: 'PUT',
                     headers: { 'Content-Type': bookFile.type },
@@ -139,7 +144,12 @@ export default function NewBookForm() {
                     throw new Error(`Signed upload failed: ${bookUploadRes.statusText}`);
                 }
 
-                const coverSigned = await getSignedUploadUrlAction(coverPath);
+                const coverSignedResult = await getSignedUploadUrlAction(coverPath);
+                if (!coverSignedResult.success) {
+                    throw new Error(coverSignedResult.error);
+                }
+                const coverSigned = coverSignedResult.data!;
+
                 const coverUploadRes = await fetch(coverSigned.signedUrl, {
                     method: 'PUT',
                     headers: { 'Content-Type': coverFile.type },
@@ -153,7 +163,7 @@ export default function NewBookForm() {
                 const { data: coverUrlData } = supabase.storage.from(BUCKET).getPublicUrl(coverPath);
                 bookUrl = bookUrlData.publicUrl;
                 coverUrl = coverUrlData.publicUrl;
-            } catch (secureUploadErr) {
+            } catch (secureUploadErr: any) {
                 console.warn('Fallback to standard client upload:', secureUploadErr);
                 
                 // Fallback: upload directly from client using public anon client
@@ -192,7 +202,10 @@ export default function NewBookForm() {
 
             try {
                 // Try secure server action database insertion
-                await insertBookAction(newBook);
+                const insertRes = await insertBookAction(newBook);
+                if (!insertRes.success) {
+                    throw new Error(insertRes.error);
+                }
             } catch (secureInsertErr: any) {
                 console.warn('Fallback to client-side insert:', secureInsertErr);
                 

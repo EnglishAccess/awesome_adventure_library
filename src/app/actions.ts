@@ -148,16 +148,16 @@ export async function deleteBookAction(id: string) {
   if (error) throw new Error(`Delete failed: ${error.message}`);
 }
 
-export async function insertBookAction(newBook: any) {
+export async function insertBookAction(newBook: any): Promise<{ success: boolean; data?: Book; error?: string }> {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not defined in Vercel environment variables.');
+    return { success: false, error: 'SUPABASE_SERVICE_ROLE_KEY is not defined in Vercel environment variables.' };
   }
   if (process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is incorrectly set to the public anon key.');
+    return { success: false, error: 'SUPABASE_SERVICE_ROLE_KEY is incorrectly set to the public anon key.' };
   }
 
   if (!(await verifyServerAction())) {
-    throw new Error('Unauthorized');
+    return { success: false, error: 'Unauthorized' };
   }
 
   const { data, error } = await supabaseAdmin
@@ -166,20 +166,22 @@ export async function insertBookAction(newBook: any) {
     .select()
     .single();
 
-  if (error) throw new Error(`Database insert failed: ${error.message}`);
-  return data as Book;
+  if (error) {
+    return { success: false, error: `Database insert failed: ${error.message}` };
+  }
+  return { success: true, data: data as Book };
 }
 
-export async function getSignedUploadUrlAction(path: string) {
+export async function getSignedUploadUrlAction(path: string): Promise<{ success: boolean; data?: { signedUrl: string; token: string; path: string }; error?: string }> {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not defined in Vercel environment variables.');
+    return { success: false, error: 'SUPABASE_SERVICE_ROLE_KEY is not defined in Vercel environment variables.' };
   }
   if (process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is incorrectly set to the public anon key.');
+    return { success: false, error: 'SUPABASE_SERVICE_ROLE_KEY is incorrectly set to the public anon key.' };
   }
 
   if (!(await verifyServerAction())) {
-    throw new Error('Unauthorized');
+    return { success: false, error: 'Unauthorized' };
   }
 
   const { data, error } = await supabaseAdmin.storage
@@ -187,10 +189,10 @@ export async function getSignedUploadUrlAction(path: string) {
     .createSignedUploadUrl(path);
 
   if (error) {
-    throw new Error(`Failed to create signed upload URL: ${error.message}`);
+    return { success: false, error: `Failed to create signed upload URL: ${error.message}` };
   }
 
-  return data; // { signedUrl: string, token: string, path: string }
+  return { success: true, data };
 }
 
 // Secure login implementation
