@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { getSignedUploadUrlAction, insertBookAction } from '@/app/actions';
 import { extractColorFromImage } from '@/lib/colorUtils';
 import { pdfjs } from 'react-pdf';
 
@@ -115,36 +116,65 @@ export default function NewBookForm() {
         setLoading(true);
 
         try {
-            // Vercel Serverless Limits (4.5MB payload, 10s timeout) 回避のため、
-            // ブラウザからSupabaseへ直接ファイルをアップロードする（直行便）
             const id = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
             const BUCKET = 'books';
-
-            // 1. 本(PDF)のアップロード
             const bookExt = bookFile.name.split('.').pop() || 'pdf';
             const bookPath = `${id}_book.${bookExt}`;
-            const { error: bookUploadError } = await supabase.storage
-                .from(BUCKET)
-                .upload(bookPath, bookFile, { contentType: bookFile.type });
-
-            if (bookUploadError) throw new Error(`Book upload failed: ${bookUploadError.message}`);
-
-            // 2. 表紙(画像)のアップロード
             const coverExt = coverFile.name.split('.').pop() || 'png';
             const coverPath = `${id}_cover.${coverExt}`;
-            const { error: coverUploadError } = await supabase.storage
-                .from(BUCKET)
-                .upload(coverPath, coverFile, { contentType: coverFile.type });
-
-            if (coverUploadError) throw new Error(`Cover upload failed: ${coverUploadError.message}`);
-
-            // 3. アップロードしたファイルの公開URLを取得
-            const { data: bookUrlData } = supabase.storage.from(BUCKET).getPublicUrl(bookPath);
-            const { data: coverUrlData } = supabase.storage.from(BUCKET).getPublicUrl(coverPath);
-
             const fileType = bookExt.toLowerCase() === 'pdf' ? 'pdf' : 'text';
 
-            // 4. メタデータをデータベース(books)に登録
+            let bookUrl = '';
+            let coverUrl = '';
+
+            try {
+                // Try secure upload using Signed Upload URLs (Option 2)
+                const bookSigned = await getSignedUploadUrlAction(bookPath);
+                const bookUploadRes = await fetch(bookSigned.signedUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': bookFile.type },
+                    body: bookFile,
+                });
+                if (!bookUploadRes.ok) {
+                    throw new Error(`Signed upload failed: ${bookUploadRes.statusText}`);
+                }
+
+                const coverSigned = await getSignedUploadUrlAction(coverPath);
+                const coverUploadRes = await fetch(coverSigned.signedUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': coverFile.type },
+                    body: coverFile,
+                });
+                if (!coverUploadRes.ok) {
+                    throw new Error(`Signed upload failed: ${coverUploadRes.statusText}`);
+                }
+
+                const { data: bookUrlData } = supabase.storage.from(BUCKET).getPublicUrl(bookPath);
+                const { data: coverUrlData } = supabase.storage.from(BUCKET).getPublicUrl(coverPath);
+                bookUrl = bookUrlData.publicUrl;
+                coverUrl = coverUrlData.publicUrl;
+            } catch (secureUploadErr) {
+                console.warn('Fallback to standard client upload:', secureUploadErr);
+                
+                // Fallback: upload directly from client using public anon client
+                const { error: bookUploadError } = await supabase.storage
+                    .from(BUCKET)
+                    .upload(bookPath, bookFile, { contentType: bookFile.type });
+
+                if (bookUploadError) throw new Error(`Book upload failed: ${bookUploadError.message}`);
+
+                const { error: coverUploadError } = await supabase.storage
+                    .from(BUCKET)
+                    .upload(coverPath, coverFile, { contentType: coverFile.type });
+
+                if (coverUploadError) throw new Error(`Cover upload failed: ${coverUploadError.message}`);
+
+                const { data: bookUrlData } = supabase.storage.from(BUCKET).getPublicUrl(bookPath);
+                const { data: coverUrlData } = supabase.storage.from(BUCKET).getPublicUrl(coverPath);
+                bookUrl = bookUrlData.publicUrl;
+                coverUrl = coverUrlData.publicUrl;
+            }
+
             const newBook = {
                 id,
                 title,
@@ -154,17 +184,24 @@ export default function NewBookForm() {
                 unit: unit || null,
                 link_url: linkUrl || null,
                 skip_first_page: skipFirstPage,
-                cover_url: coverUrlData.publicUrl,
-                file_url: bookUrlData.publicUrl,
+                cover_url: coverUrl,
+                file_url: bookUrl,
                 file_type: fileType,
                 view_count: 0,
             };
 
-            const { error: dbError } = await supabase.from('books').insert(newBook);
-            if (dbError) throw new Error(`Database insert failed: ${dbError.message}`);
+            try {
+                // Try secure server action database insertion
+                await insertBookAction(newBook);
+            } catch (secureInsertErr) {
+                console.warn('Fallback to client-side insert:', secureInsertErr);
+                
+                // Fallback: insert via client-side anon client
+                const { error: dbError } = await supabase.from('books').insert(newBook);
+                if (dbError) throw new Error(`Database insert failed: ${dbError.message}`);
+            }
 
             alert('Book uploaded successfully!');
-            // 入力フォームをリセットしつつ更新
             window.location.href = '/admin/books';
 
         } catch (error: any) {

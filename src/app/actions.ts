@@ -1,6 +1,7 @@
 'use server';
 
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { Book } from '@/types';
 import { cookies } from 'next/headers';
 import { verifyToken, signToken } from '@/lib/auth';
@@ -132,19 +133,50 @@ export async function deleteBookAction(id: string) {
     throw new Error('Unauthorized');
   }
 
-  // Delete the record from DB
-  const { data: book } = await supabase.from('books').select('*').eq('id', id).single();
+  // Delete the record from DB using admin client to bypass RLS
+  const { data: book } = await supabaseAdmin.from('books').select('*').eq('id', id).single();
 
   if (book) {
     // Attempt to remove files from storage (best-effort)
     const bookPath = book.file_url?.split('/').pop();
     const coverPath = book.cover_url?.split('/').pop();
-    if (bookPath) await supabase.storage.from(BUCKET).remove([bookPath]);
-    if (coverPath) await supabase.storage.from(BUCKET).remove([coverPath]);
+    if (bookPath) await supabaseAdmin.storage.from(BUCKET).remove([bookPath]);
+    if (coverPath) await supabaseAdmin.storage.from(BUCKET).remove([coverPath]);
   }
 
-  const { error } = await supabase.from('books').delete().eq('id', id);
+  const { error } = await supabaseAdmin.from('books').delete().eq('id', id);
   if (error) throw new Error(`Delete failed: ${error.message}`);
+}
+
+export async function insertBookAction(newBook: any) {
+  if (!(await verifyServerAction())) {
+    throw new Error('Unauthorized');
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('books')
+    .insert(newBook)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Database insert failed: ${error.message}`);
+  return data as Book;
+}
+
+export async function getSignedUploadUrlAction(path: string) {
+  if (!(await verifyServerAction())) {
+    throw new Error('Unauthorized');
+  }
+
+  const { data, error } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .createSignedUploadUrl(path);
+
+  if (error) {
+    throw new Error(`Failed to create signed upload URL: ${error.message}`);
+  }
+
+  return data; // { signedUrl: string, token: string, path: string }
 }
 
 // Secure login implementation
