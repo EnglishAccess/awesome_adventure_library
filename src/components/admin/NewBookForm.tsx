@@ -193,12 +193,14 @@ export default function NewBookForm() {
             try {
                 // Try secure server action database insertion
                 await insertBookAction(newBook);
-            } catch (secureInsertErr) {
+            } catch (secureInsertErr: any) {
                 console.warn('Fallback to client-side insert:', secureInsertErr);
                 
                 // Fallback: insert via client-side anon client
                 const { error: dbError } = await supabase.from('books').insert(newBook);
-                if (dbError) throw new Error(`Database insert failed: ${dbError.message}`);
+                if (dbError) {
+                    throw new Error(`Database insert failed: ${dbError.message} (Server error: ${secureInsertErr?.message || secureInsertErr})`);
+                }
             }
 
             alert('Book uploaded successfully!');

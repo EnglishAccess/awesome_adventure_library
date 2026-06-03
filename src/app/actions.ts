@@ -149,6 +149,13 @@ export async function deleteBookAction(id: string) {
 }
 
 export async function insertBookAction(newBook: any) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not defined in Vercel environment variables.');
+  }
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is incorrectly set to the public anon key.');
+  }
+
   if (!(await verifyServerAction())) {
     throw new Error('Unauthorized');
   }
@@ -164,6 +171,13 @@ export async function insertBookAction(newBook: any) {
 }
 
 export async function getSignedUploadUrlAction(path: string) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not defined in Vercel environment variables.');
+  }
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is incorrectly set to the public anon key.');
+  }
+
   if (!(await verifyServerAction())) {
     throw new Error('Unauthorized');
   }
