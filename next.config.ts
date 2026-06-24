@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
             },
         ],
     },
-    transpilePackages: ['pdfjs-dist'],
+    transpilePackages: ['pdfjs-dist', 'framer-motion', 'lucide-react', 'react-pageflip'],
 };
 
 export default nextConfig;
