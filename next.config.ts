@@ -15,15 +15,6 @@ const nextConfig: NextConfig = {
         ],
     },
     transpilePackages: ['pdfjs-dist'],
-    turbopack: {
-        resolveAlias: {
-            'pdfjs-dist': 'pdfjs-dist/legacy/build/pdf',
-        },
-    },
-    webpack: (config) => {
-        config.resolve.alias['pdfjs-dist'] = 'pdfjs-dist/legacy/build/pdf';
-        return config;
-    },
 };
 
 export default nextConfig;
