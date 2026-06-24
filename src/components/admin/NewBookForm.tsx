@@ -9,7 +9,7 @@ import { pdfjs } from 'react-pdf';
 import imageCompression from 'browser-image-compression';
 
 if (typeof window !== 'undefined') {
-    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.js`;
+    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`;
 }
 import { Upload, Loader2, Image as ImageIcon, FileText, ArrowLeft, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
