@@ -11,7 +11,7 @@ const FlipReader = dynamic(() => import('./FlipReader'), { ssr: false });
 const ScrollReader = dynamic(() => import('./ScrollReader'), { ssr: false });
 
 if (typeof window !== 'undefined') {
-    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.js`;
 }
 
 interface ReaderProps {
