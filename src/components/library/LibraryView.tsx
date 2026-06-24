@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Book } from '@/types';
 import Link from 'next/link';
+import Image from 'next/image';
 import { BookOpen, Search, FilterX } from 'lucide-react';
 
 interface LibraryViewProps {
@@ -156,13 +157,15 @@ export default function LibraryView({ initialBooks }: LibraryViewProps) {
                 )}
 
                 {/* Book Cover */}
-                <div className="w-full bg-gray-100 relative flex items-center justify-center">
+                <div className="w-full aspect-[3/4] bg-gray-100 relative flex items-center justify-center">
                   {book.cover_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={book.cover_url}
                       alt={book.title}
-                      className="w-full h-auto object-contain"
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      className="object-contain"
                     />
                   ) : (
                     <div className="w-full aspect-[3/4] flex items-center justify-center bg-amber-50 text-amber-200">

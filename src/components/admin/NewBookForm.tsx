@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { getSignedUploadUrlAction, insertBookAction } from '@/app/actions';
 import { extractColorFromImage } from '@/lib/colorUtils';
 import { pdfjs } from 'react-pdf';
+import imageCompression from 'browser-image-compression';
 
 if (typeof window !== 'undefined') {
     pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -33,6 +34,22 @@ export default function NewBookForm() {
     const [bookFile, setBookFile] = useState<File | null>(null);
     const [isExtracting, setIsExtracting] = useState(false);
 
+    const compressImage = async (file: File) => {
+        const options = {
+            maxSizeMB: 0.1, // ~100KB
+            maxWidthOrHeight: 800,
+            useWebWorker: true,
+            fileType: 'image/webp'
+        };
+        try {
+            const compressedBlob = await imageCompression(file, options);
+            return new File([compressedBlob], file.name.replace(/\.[^/.]+$/, ".webp"), { type: 'image/webp' });
+        } catch (error) {
+            console.error('Compression error:', error);
+            return file;
+        }
+    };
+
     const extractPdfToImageAndSetCover = async (pdfFile: File) => {
         try {
             setIsExtracting(true);
@@ -58,7 +75,8 @@ export default function NewBookForm() {
             canvas.toBlob(async (blob) => {
                 if (blob) {
                     const extractedFile = new File([blob], pdfFile.name.replace('.pdf', '_cover.jpg'), { type: 'image/jpeg' });
-                    setCoverFile(extractedFile);
+                    const compressedFile = await compressImage(extractedFile);
+                    setCoverFile(compressedFile);
                     
                     const objectUrl = URL.createObjectURL(blob);
                     setPreviewUrl(objectUrl);
@@ -83,8 +101,9 @@ export default function NewBookForm() {
         if (file.name.toLowerCase().endsWith('.pdf')) {
             await extractPdfToImageAndSetCover(file);
         } else {
-            setCoverFile(file);
-            const objectUrl = URL.createObjectURL(file);
+            const compressedFile = await compressImage(file);
+            setCoverFile(compressedFile);
+            const objectUrl = URL.createObjectURL(compressedFile);
             setPreviewUrl(objectUrl);
             const color = await extractColorFromImage(objectUrl);
             setSpineColor(color);
