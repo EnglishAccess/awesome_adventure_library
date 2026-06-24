@@ -9,6 +9,7 @@ import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react';
 
 const FlipReader = dynamic(() => import('./FlipReader'), { ssr: false });
 const ScrollReader = dynamic(() => import('./ScrollReader'), { ssr: false });
+const SimpleReader = dynamic(() => import('./SimpleReader'), { ssr: false });
 
 if (typeof window !== 'undefined') {
     pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`;
@@ -21,12 +22,24 @@ interface ReaderProps {
 export default function Reader({ book }: ReaderProps) {
     const [mounted, setMounted] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isOldIOS, setIsOldIOS] = useState(false);
 
     useEffect(() => {
         setMounted(true);
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
         checkMobile();
         window.addEventListener('resize', checkMobile);
+
+        // Detect old iOS (iOS 15 or older)
+        const ua = window.navigator.userAgent;
+        const isIOS = /iPad|iPhone|iPod/.test(ua) || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+        if (isIOS) {
+            const match = ua.match(/OS (\d+)_/);
+            if (match && parseInt(match[1], 10) <= 15) {
+                setIsOldIOS(true);
+            }
+        }
+
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
@@ -75,7 +88,9 @@ export default function Reader({ book }: ReaderProps) {
             {/* Main Content */}
             <div className="flex-1 relative overflow-hidden">
                 {book.file_url ? (
-                    isMobile ? (
+                    isOldIOS ? (
+                        <SimpleReader url={book.file_url} bookId={book.id} skipFirstPage={book.skip_first_page} />
+                    ) : isMobile ? (
                         <ScrollReader url={book.file_url} bookId={book.id} skipFirstPage={book.skip_first_page} />
                     ) : (
                         <FlipReader url={book.file_url} bookId={book.id} skipFirstPage={book.skip_first_page} />
