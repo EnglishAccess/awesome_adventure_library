@@ -22,7 +22,7 @@ interface ReaderProps {
 export default function Reader({ book }: ReaderProps) {
     const [mounted, setMounted] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const [isOldIOS, setIsOldIOS] = useState(false);
+    const [useSimpleMode, setUseSimpleMode] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -30,18 +30,20 @@ export default function Reader({ book }: ReaderProps) {
         checkMobile();
         window.addEventListener('resize', checkMobile);
 
-        // Detect old iOS (iOS 15 or older)
-        const ua = window.navigator.userAgent;
-        const isIOS = /iPad|iPhone|iPod/.test(ua) || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
-        if (isIOS) {
-            const match = ua.match(/OS (\d+)_/);
-            if (match && parseInt(match[1], 10) <= 15) {
-                setIsOldIOS(true);
-            }
+        // Load saved preference
+        const savedMode = localStorage.getItem('useSimpleMode');
+        if (savedMode === 'true') {
+            setUseSimpleMode(true);
         }
 
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    const toggleMode = () => {
+        const newMode = !useSimpleMode;
+        setUseSimpleMode(newMode);
+        localStorage.setItem('useSimpleMode', String(newMode));
+    };
 
     if (!mounted) return null;
 
@@ -58,7 +60,14 @@ export default function Reader({ book }: ReaderProps) {
                     {book.title}
                 </h1>
 
-                <div className="flex items-center">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={toggleMode}
+                        className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded-full text-xs font-bold transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        {useSimpleMode ? '高機能版にする' : '簡易版で開く'}
+                    </button>
+
                     {book.link_url ? (
                         <a
                             href={book.link_url}
@@ -88,7 +97,7 @@ export default function Reader({ book }: ReaderProps) {
             {/* Main Content */}
             <div className="flex-1 relative overflow-hidden">
                 {book.file_url ? (
-                    isOldIOS ? (
+                    useSimpleMode ? (
                         <SimpleReader url={book.file_url} bookId={book.id} skipFirstPage={book.skip_first_page} />
                     ) : isMobile ? (
                         <ScrollReader url={book.file_url} bookId={book.id} skipFirstPage={book.skip_first_page} />
